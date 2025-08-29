@@ -1,0 +1,119 @@
+
+import pygame
+import sys
+
+pygame.init()
+
+# Màn hình
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Helena Evil - Demo Escape")
+
+# Màu sắc
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED   = (200, 0, 0)
+GREEN = (0, 200, 0)
+BLUE  = (0, 0, 200)
+GRAY  = (50, 50, 50)
+
+# Font
+font = pygame.font.SysFont("Arial", 28)
+
+# Người chơi (Tom)
+player = pygame.Rect(100, 100, 40, 40)
+player_speed = 5
+
+# Vật phẩm
+key_item = pygame.Rect(300, 200, 30, 30)
+gas_item = pygame.Rect(500, 400, 30, 30)
+helicopter = pygame.Rect(650, 100, 100, 60)
+
+inventory = {"key": False, "gas": False}
+game_state = "menu"
+message = ""
+
+# Vẽ chữ
+def draw_text(text, x, y, color=WHITE):
+    label = font.render(text, True, color)
+    screen.blit(label, (x, y))
+
+# Vòng lặp game
+clock = pygame.time.Clock()
+while True:
+    screen.fill(BLACK)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        # Nhấn chuột trong menu
+        if game_state == "menu" and event.type == pygame.MOUSEBUTTONDOWN:
+            mx, my = event.pos
+            if 300 <= mx <= 500 and 200 <= my <= 250:  # nút chơi
+                game_state = "play"
+
+        # Quay lại menu từ ending
+        if game_state == "ending" and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                game_state = "menu"
+                inventory = {"key": False, "gas": False}
+                message = ""
+                player.x, player.y = 100, 100
+
+    # MENU
+    if game_state == "menu":
+        draw_text("HELENA EVIL", 300, 100, RED)
+        pygame.draw.rect(screen, GRAY, (300, 200, 200, 50))  # nút chơi
+        draw_text("Choi", 370, 210, WHITE)
+        pygame.draw.rect(screen, GRAY, (300, 300, 200, 50))  # nút cài đặt
+        draw_text("Cai dat", 350, 310, WHITE)
+        pygame.draw.rect(screen, GRAY, (300, 400, 200, 50))  # nút thoát
+        draw_text("Thoat", 360, 410, WHITE)
+
+    # GAME
+    elif game_state == "play":
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:  player.x -= player_speed
+        if keys[pygame.K_RIGHT]: player.x += player_speed
+        if keys[pygame.K_UP]:    player.y -= player_speed
+        if keys[pygame.K_DOWN]:  player.y += player_speed
+
+        # Giới hạn map
+        player.clamp_ip(pygame.Rect(0, 0, WIDTH, HEIGHT))
+
+        # Kiểm tra va chạm
+        if player.colliderect(key_item) and not inventory["key"]:
+            inventory["key"] = True
+            message = "Ban da nhat CHIA KHOA!"
+        if player.colliderect(gas_item) and not inventory["gas"]:
+            inventory["gas"] = True
+            message = "Ban da nhat XANG!"
+
+        if player.colliderect(helicopter):
+            if inventory["key"] and inventory["gas"]:
+                game_state = "ending"
+            else:
+                message = "Ban can nhat day du vat pham!"
+
+        # Vẽ
+        pygame.draw.rect(screen, BLUE, player)        # nhân vật
+        if not inventory["key"]:
+            pygame.draw.rect(screen, GREEN, key_item) # chìa khóa
+        if not inventory["gas"]:
+            pygame.draw.rect(screen, RED, gas_item)   # xăng
+        pygame.draw.rect(screen, GRAY, helicopter)   # trực thăng
+
+        # Thông báo
+        if message:
+            draw_text(message, 200, 550, WHITE)
+
+    # ENDING
+    elif game_state == "ending":
+        screen.fill(BLACK)
+        draw_text("YOU ESCAPED - Ending 4 (Truc thang)", 150, 250, GREEN)
+        draw_text("Nhan ENTER de quay lai menu", 180, 320, WHITE)
+
+    pygame.display.flip()
+    clock.tick(60)
